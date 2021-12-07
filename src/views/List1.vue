@@ -67,6 +67,14 @@
                     label="I want today's special."
                   ></v-checkbox>
                 </v-col>
+                <v-col cols="12" md="4" sm="6">
+                  <img
+                    v-if="edituserData.image != null"
+                    :src="img1"
+                    class="preview"
+                    height="10%"
+                  />
+                </v-col>
               </v-row>
             </v-container>
           </v-card-text>
@@ -103,17 +111,20 @@
   </v-data-table>
 </template>
 <script>
+import { FirebaseStorage } from "../firebase";
 import UserDataService from "../services/UserDataService";
 export default {
   data() {
     return {
       userData: [],
+      img1: null,
       edituserData: {
         email: "",
         psw: "",
         ranking: 1,
         comments: "",
         options: [],
+        image: null,
       },
       defaultuserData: {
         email: "",
@@ -121,6 +132,7 @@ export default {
         ranking: 1,
         comments: "",
         options: [],
+        image: null,
       },
       currentuserData: null,
       currentIndex: -1,
@@ -158,6 +170,7 @@ export default {
           ranking: data.ranking,
           comments: data.comments,
           options: data.options,
+          image: data.image,
         });
       });
       this.userData = _userData;
@@ -169,8 +182,16 @@ export default {
     editItem(item) {
       //alert("Show Edit Modal");
       this.edituserData = Object.assign({}, item);
+
+      if (!this.edituserData.image) {
+        this.edituserData.image = "image_userdata/no_image.png";
+      }
+      //Get link picture
+
+      this.getPicture(this.edituserData.image).then((url) => {
+        this.img1 = url;
+      });
       this.dialog = true;
-      console.log(item);
     },
     deleteItem(item) {
       //alert("Show Delete Modal");
@@ -210,6 +231,42 @@ export default {
         .catch((e) => {
           console.log(e);
         });
+    },
+    getPicture(file) {
+      return new Promise((resolve, reject) => {
+        var starsRef = FirebaseStorage.ref().child(file);
+
+        // Get the download URL
+        starsRef
+          .getDownloadURL()
+          .then(function (url) {
+            // Insert url into an <img> tag to "download"
+            console.log(url);
+            resolve(url);
+          })
+          .catch(function (error) {
+             reject(error);
+            // A full list of error codes is available at
+            // https://firebase.google.com/docs/storage/web/handle-errors
+            switch (error.code) {
+              case "storage/object-not-found":
+                // File doesn't exist
+                break;
+
+              case "storage/unauthorized":
+                // User doesn't have permission to access the object
+                break;
+
+              case "storage/canceled":
+                // User canceled the upload
+                break;
+
+              case "storage/unknown":
+                // Unknown error occurred, inspect the server response
+                break;
+            }
+          });
+      });
     },
   },
   computed: {
